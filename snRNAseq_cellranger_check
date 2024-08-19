@@ -1,0 +1,82 @@
+#!/bin/bash/
+#SBATCH --nodes= 
+#SBATCH --ntasks-per-node= 
+#SBATCH --partition= 
+#SBATCH --job-name= 
+#SBATCH --output=%j.out 
+#SBATCH --error=%j.err 
+#SBATCH --time=.
+
+##################################
+####   software environment ######
+##################################
+
+export A={SAMPLE_NAME}
+conda activate environment 
+
+###################################
+#####    run job           ########
+###################################
+
+cd ../project/ #absolite path to project directory
+
+#bcl_2_fasta
+cellranger mkfastq \ 
+--run=PATH \ # path to bcl
+--id=SAMPLE_NAME \ #name the output directory that cellranger is going to run in.
+--csv=[A_COMMA-SPARATED_VALUE].csv 
+
+#FastQC for R2 
+for i in A;  \
+do fastqc -t 6 -o qc_report/ {$i}/*R2*.fastq; \
+done;
+
+
+#filter GTF file and select gene type
+cellranger mkgtf zebrafish_genome.gtf zebrafish_genome.filtered.gtf \
+--attribute=gene_biotype:protein_coding \
+--attribute=gene_biotype:lncRNA \
+--attribute=gene_biotype:antisense \
+--attribute=gene_biotype:IG_LV_gene \
+--attribute=gene_biotype:IG_V_gene \
+--attribute=gene_biotype:IG_V_pseudogene \
+--attribute=gene_biotype:IG_D_gene \
+--attribute=gene_biotype:IG_J_gene \
+--attribute=gene_biotype:IG_J_pseudogene \
+--attribute=gene_biotype:IG_C_gene \
+--attribute=gene_biotype:IG_C_pseudogene \
+--attribute=gene_biotype:TR_V_gene \
+--attribute=gene_biotype:TR_V_pseudogene \
+--attribute=gene_biotype:TR_D_gene \
+--attribute=gene_biotype:TR_J_gene \
+--attribute=gene_biotype:TR_J_pseudogene \
+--attribute=gene_biotype:TR_C_gene
+
+
+#build transcriptome for alignmenting reads
+cellranger mkref \
+    --genome=zebrafish_genome_name \
+    --fasta=zebrafish_genome.fa \
+    --genes=zebrafish_genome.filtered.gtf
+
+# gene-barcode matrix
+for i in A; \
+do cellranger count \
+--id=$i \
+--transcriptome=zebrafish_genome_name \
+--fastqs={$i}/ \
+--sampe={$i} \
+--expect_cells=5000 \ #3000-5000, maybe I need to communiate with karissa. There is no need to set this parameter after cellranger version 7.0
+--localmem=20 \
+--locacores=10 \
+--nosecondary \ #use seurat to conduct secondary qualty control and downstream analysis
+--include-introns \ #for snRNAseq
+--noexit 
+#web_summary.html for checking quality; cloupe.cloupe for Loupe cell Browser; filtered_gene_bc_matrix for seurat.
+
+
+cellranger mat2csv \ [SAMPLE_NAME]_filtered_gene_bc_matrix \ [SAMPLE_NAME].count.csv
+
+
+
+
