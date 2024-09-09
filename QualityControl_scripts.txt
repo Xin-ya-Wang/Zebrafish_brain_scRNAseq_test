@@ -1,0 +1,148 @@
+##rename fa files###
+####24-04793_01_22NGHHLT3_GTGGATCAAA-GCCAACCCTG_L001_R1.fastq===S14_S1_L001_R1_001.fastq.gz
+####24-04793_01_22NGHHLT3_GTGGATCAAA-GCCAACCCTG_L001_R2.fastq===S14_S1_L001_R2_001.fastq.gz
+####24-04793_02_22NGHHLT3_CACTACGAAA-TTAGACTGAT_L001_R1.fastq===S18_S1_L001_R1_001.fastq.gz
+####24-04793_02_22NGHHLT3_CACTACGAAA-TTAGACTGAT_L001_R2.fastq===S18_S1_L001_R2_001.fastq.gz
+####24-04793_03_22NGHHLT3_GTAGCCCTGT-GAGCATCTAT_L001_R1.fastq===S30_S1_L001_R1_001.fastq.gz
+####24-04793_03_22NGHHLT3_GTAGCCCTGT-GAGCATCTAT_L001_R2.fastq===S30_S1_L001_R2_001.fastq.gz
+
+###（1）make reference genome######
+#genome.fa download address: https://ftp.ensembl.org/pub/release-112/fasta/danio_rerio/dna/Danio_rerio.GRCz11.dna.toplevel.fa.gz
+#genome.annotation.gtf download address: https://ftp.ensembl.org/pub/release-112/gtf/danio_rerio/Danio_rerio.GRCz11.112.gtf.gz
+#cellranger version=8.0.1
+cellranger mkgtf /home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio.GRCz11.112.gtf /home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio.GRCz11.112.filtered.gtf \
+--attribute=gene_biotype:protein_coding \
+--attribute=gene_biotype:lncRNA \
+--attribute=gene_biotype:antisense \
+--attribute=gene_biotype:IG_LV_gene \
+--attribute=gene_biotype:IG_V_gene \
+--attribute=gene_biotype:IG_V_pseudogene \
+--attribute=gene_biotype:IG_D_gene \
+--attribute=gene_biotype:IG_J_gene \
+--attribute=gene_biotype:IG_J_pseudogene \
+--attribute=gene_biotype:IG_C_gene \
+--attribute=gene_biotype:IG_C_pseudogene \
+--attribute=gene_biotype:TR_V_gene \
+--attribute=gene_biotype:TR_V_pseudogene \
+--attribute=gene_biotype:TR_D_gene \
+--attribute=gene_biotype:TR_J_gene \
+--attribute=gene_biotype:TR_J_pseudogene \
+--attribute=gene_biotype:TR_C_gene
+
+cellranger mkref \
+    --genome=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio.GRCz11 \
+    --fasta=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio.GRCz11.dna.toplevel.fa \
+    --genes=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio.GRCz11.112.filtered.gtf
+
+
+####(2)fastp: PE150 raw data to clean data
+#fastp version=0.23.4
+fastp \
+--in1 /home/a1908553/projects/snRNA_control_3/data/S14_S1_L001_R1_001.fastq.gz \
+--out1 /home/a1908553/projects/snRNA_control_3/CleanData/S14_Clean_S1_L001_R1_001.fastq.gz \
+--in2 /home/a1908553/projects/snRNA_control_3/data/S14_S1_L001_R2_001.fastq.gz \
+--out2 /home/a1908553/projects/snRNA_control_3/CleanData/S14_Clean_S1_L001_R2_001.fastq.gz \
+--cut_front \
+--cut_front_window_size 4 \
+--cut_front_mean_quality 10 \
+--cut_tail \
+--cut_tail_window_size 1 \
+--cut_tail_mean_quality 3 \
+--detect_adapter_for_pe \
+--length_required 60 \
+--json \
+--html
+
+fastp \
+--in1 /home/a1908553/projects/snRNA_control_3/data/S18_S1_L001_R1_001.fastq.gz \
+--out1 /home/a1908553/projects/snRNA_control_3/CleanData/S18_Clean_S1_L001_R1_001.fastq.gz \
+--in2 /home/a1908553/projects/snRNA_control_3/data/S18_S1_L001_R2_001.fastq.gz \
+--out2 /home/a1908553/projects/snRNA_control_3/CleanData/S18_Clean_S1_L001_R2_001.fastq.gz \
+--cut_front \
+--cut_front_window_size 4 \
+--cut_front_mean_quality 10 \
+--cut_tail \
+--cut_tail_window_size 1 \
+--cut_tail_mean_quality 3 \
+--detect_adapter_for_pe \
+--length_required 60 \
+--json \
+--html 
+
+fastp \
+--in1 /home/a1908553/projects/snRNA_control_3/data/S30_S1_L001_R1_001.fastq.gz \
+--out1 /home/a1908553/projects/snRNA_control_3/CleanData/S30_Clean_S1_L001_R1_001.fastq.gz \
+--in2 /home/a1908553/projects/snRNA_control_3/data/S30_S1_L001_R2_001.fastq.gz \
+--out2 /home/a1908553/projects/snRNA_control_3/CleanData/S30_Clean_S1_L001_R2_001.fastq.gz \
+--cut_front \
+--cut_front_window_size 4 \
+--cut_front_mean_quality 10 \
+--cut_tail \
+--cut_tail_window_size 1 \
+--cut_tail_mean_quality 3 \
+--detect_adapter_for_pe \
+--length_required 60 \
+--json \
+--html
+
+
+
+####(3)mapping clean data to reference genome###
+####get cell-gene-counts matrix
+#cellranger version=8.0.1
+
+#Sample_S30, mapping S30 R2 full sequencing 
+cellranger count \
+--id=S30_Clean \
+--sample=S30_Clean \
+--transcriptome=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio/ \
+--fastqs=/home/a1908553/projects/snRNA_control_3/CleanData/ \
+--localmem=200 \
+--localcores=30 \
+--nosecondary \
+--include-introns=true \
+--noexit \
+--create-bam=true 
+
+
+#mapping trimmed S14,S18,S30 sequencing(R2 98nt) to reference genome
+cellranger count \
+--id=S14_Clean \
+--sample=S14_Clean \
+--transcriptome=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio/ \
+--fastqs=/home/a1908553/projects/snRNA_control_3/CleanData/ \
+--localmem=200 \
+--localcores=30 \
+--nosecondary \
+--include-introns=true \
+--noexit \
+--create-bam=true \
+--r2-length 98
+
+cellranger count \
+--id=S18_Clean \
+--sample=S18_Clean \
+--transcriptome=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio/ \
+--fastqs=/home/a1908553/projects/snRNA_control_3/CleanData/ \
+--localmem=200 \
+--localcores=30 \
+--nosecondary \
+--include-introns=true \
+--noexit \
+--create-bam=true \
+--r2-length 98
+
+cellranger count \
+--id=S30_Clean \
+--sample=S30_Clean \
+--transcriptome=/home/a1908553/projects/snRNA_control_3/reference_genome/Danio_rerio/ \
+--fastqs=/home/a1908553/projects/snRNA_control_3/CleanData/ 
+--localmem=200 \
+--localcores=30 \
+--nosecondary \
+--include-introns=true \
+--noexit \
+--create-bam=true \
+--r2-length 98
+
+
